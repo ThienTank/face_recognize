@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# AI models
+models/
+*.onnx
+*.pth
+*.pt
+*.zip
+*.pkl
+
+# Dataset
+data/
+
+# Environment
+.env
+
+# VSCode
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
