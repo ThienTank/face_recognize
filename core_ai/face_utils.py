@@ -4,7 +4,16 @@ from insightface.app import FaceAnalysis
 
 # Khởi tạo mô hình (Tự động tải weights về máy ở lần chạy đầu tiên)
 # "buffalo_l" là gói mô hình độ chính xác cao của InsightFace
-app = FaceAnalysis(name="buffalo_l", providers=['CPUExecutionProvider']) 
+#app = FaceAnalysis(name="buffalo_l", providers=['CPUExecutionProvider']) 
+#app.prepare(ctx_id=0, det_size=(640, 640))
+ROOT_DIR = r"E:\mohinh\face_attendance"
+
+# Khởi tạo mô hình và trỏ nó về ổ E của bạn
+app = FaceAnalysis(
+    name="buffalo_l", 
+    root=ROOT_DIR, 
+    providers=['CPUExecutionProvider']
+) 
 app.prepare(ctx_id=0, det_size=(640, 640))
 
 def get_face_embeddings(image_path_or_frame):

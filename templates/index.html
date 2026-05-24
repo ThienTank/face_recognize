@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhận diện khuôn mặt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-box {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .image-col {
+            flex: 2;
+        }
+
+        .info-col {
+            flex: 1;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #loading {
+            display: none;
+            color: orange;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>📷 Tải Ảnh </h2>
+        <input type="file" id="imageInput" accept="image/*">
+        <button onclick="uploadImage()">Nhận Diện Ngay</button>
+        <div id="loading">⏳ Hệ thống đang quét khuôn mặt...</div>
+
+        <div class="result-box" id="resultBox" style="display: none;">
+            <div class="image-col">
+                <img id="resultImage" src="" alt="Kết quả nhận diện">
+            </div>
+            <div class="info-col">
+                <h3>Thống Kê Khung Hình</h3>
+                <p>Tổng số khuôn mặt: <b id="totalFaces">0</b></p>
+                <p>Nhận diện thành công: <b id="recognizedCount" style="color: green;">0</b></p>
+                <p>Người lạ (Unknown): <b id="unknownCount" style="color: red;">0</b></p>
+
+                <hr>
+                <h3>✅ Danh sách điểm danh:</h3>
+                <ul id="recognizedList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function uploadImage() {
+            const fileInput = document.getElementById('imageInput');
+            if (fileInput.files.length === 0) {
+                alert("Vui lòng chọn một bức ảnh!");
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultBox').style.display = 'none';
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload/', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                // Cập nhật thống kê
+                document.getElementById('totalFaces').innerText = data.total_faces;
+                document.getElementById('recognizedCount').innerText = data.recognized_count;
+                document.getElementById('unknownCount').innerText = data.unknown_count;
+
+                // Cập nhật danh sách
+                const list = document.getElementById('recognizedList');
+                list.innerHTML = "";
+                data.recognized_list.forEach(name => {
+                    let li = document.createElement('li');
+                    li.textContent = name;
+                    li.style.color = "green";
+                    li.style.fontWeight = "bold";
+                    list.appendChild(li);
+                });
+
+                // Hiển thị ảnh đã vẽ khung
+                document.getElementById('resultImage').src = "data:image/jpeg;base64," + data.image_base64;
+
+                document.getElementById('resultBox').style.display = 'flex';
+            } catch (error) {
+                alert("Có lỗi xảy ra khi gọi API!");
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+
+</html>
