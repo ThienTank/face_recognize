@@ -3,14 +3,22 @@ import cv2
 import pickle
 import numpy as np
 import base64
+import datetime
+import pandas as pd
 from fastapi import FastAPI, File, UploadFile, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
+
 from core_ai.face_utils import get_face_embeddings, compute_similarity
-from core_ai.anti_spoofing import AntiSpoofing  # <-- Import Module mới
+from core_ai.anti_spoofing import AntiSpoofing
+from core_ai.database import log_attendance, SessionLocal, Attendance
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "models", "face_db.pkl")
+
+# Tạo thư mục lưu ảnh minh chứng (nếu chạy bản web)
+RECORDS_DIR = os.path.join(BASE_DIR, "attendance_records")
+os.makedirs(RECORDS_DIR, exist_ok=True)
 
 app = FastAPI()
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
@@ -71,8 +79,21 @@ async def upload_image(file: UploadFile = File(...)):
                 best_match_name = name
                 
         if best_score >= THRESHOLD:
+            # LƯU ẢNH VÀ GHI DATABASE TẠI ĐÂY
+            now = datetime.datetime.now()
+            time_str = now.strftime("%Y%m%d_%H%M%S")
+            filename = f"{best_match_name}_{time_str}.jpg"
+            filepath = os.path.join(RECORDS_DIR, filename)
+            
+            # Lưu ảnh thực tế
+            cv2.imwrite(filepath, img)
+            
+            # Gọi hàm ghi vào MySQL/SQLite
+            db_status = log_attendance(best_match_name, filepath)
+            print(f"[{best_match_name}] - {db_status}")
+
             recognized_list.append(best_match_name)
-            color = (0, 255, 0) # Xanh lá
+            color = (0, 255, 0)
             label = best_match_name
         else:
             unknown_count += 1
@@ -94,3 +115,46 @@ async def upload_image(file: UploadFile = File(...)):
         "fake_count": fake_count, # Trả về web số lượng mặt giả
         "image_base64": img_base64
     }
+
+# =====================================================================
+# API MỚI DÀNH CHO PHÒNG NHÂN SỰ: XUẤT FILE EXCEL
+# =====================================================================
+@app.get("/export-excel/")
+async def export_attendance_excel():
+    db = SessionLocal()
+    records = db.query(Attendance).all()
+    
+    # Chuyển đổi dữ liệu từ Database sang dạng Bảng (Dictionary)
+    data = []
+    for r in records:
+        data.append({
+            "Mã Nhân Viên": r.employee_id,
+            "Họ Tên": r.name,
+            "Ngày Điểm Danh": r.date.strftime("%d/%m/%Y") if r.date else "",
+            "Giờ Check-in": r.check_in.strftime("%H:%M:%S") if r.check_in else "Chưa có",
+            "Giờ Check-out": r.check_out.strftime("%H:%M:%S") if r.check_out else "Chưa có",
+            "Đường dẫn Ảnh": r.image_path
+        })
+    db.close()
+    
+    # Tạo Dataframe bằng Pandas
+    df = pd.DataFrame(data)
+    
+    # Lưu ra file Excel
+    excel_filename = f"Bao_Cao_Diem_Danh_{datetime.date.today().strftime('%m_%Y')}.xlsx"
+    excel_path = os.path.join(BASE_DIR, excel_filename)
+    
+    df.to_excel(excel_path, index=False, engine='openpyxl')
+    
+    # Gửi file trực tiếp về trình duyệt để tải xuống
+    return FileResponse(
+        path=excel_path, 
+        filename=excel_filename, 
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+if __name__ == "__main__":
+    import uvicorn
+    print("✅ AI đã nạp xong! Đang khởi động Web Server...")
+    print("👉 Hãy mở trình duyệt và truy cập: http://127.0.0.1:8000")
+    uvicorn.run(app, host="127.0.0.1", port=8000)

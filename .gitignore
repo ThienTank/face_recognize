@@ -22,3 +22,8 @@ data/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Generated files
+attendance_records/
+attendance.db
+*.xlsx

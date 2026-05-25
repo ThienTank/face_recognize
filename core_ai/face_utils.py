@@ -12,7 +12,7 @@ ROOT_DIR = r"E:\mohinh\face_attendance"
 app = FaceAnalysis(
     name="buffalo_l", 
     root=ROOT_DIR, 
-    providers=['CPUExecutionProvider']
+    providers=['CPUExecutionProvider'] #nếu máy có gpu thì ['CUDAExecutionProvider']
 ) 
 app.prepare(ctx_id=0, det_size=(640, 640))
 
