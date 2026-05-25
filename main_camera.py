@@ -30,7 +30,7 @@ anti_spoof_detector = AntiSpoofing()
 
 def main():
     cap = cv2.VideoCapture(0)
-    THRESHOLD = 0.45
+    THRESHOLD = 0.60
 
     print("Đã bật Camera! Bấm phím 'q' trên cửa sổ camera để thoát.")
     
