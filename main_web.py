@@ -51,7 +51,7 @@ async def upload_image(file: UploadFile = File(...)):
     recognized_list = []
     unknown_count = 0
     fake_count = 0  # Đếm số mặt giả mạo
-    THRESHOLD = 0.45
+    THRESHOLD = 0.60
     
     for face in faces:
         bbox = face.bbox.astype(int)
